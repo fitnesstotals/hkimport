@@ -9,6 +9,7 @@
 import UIKit
 import HealthKit
 import os.log
+import ExceptionCatcher
 
 extension CustomStringConvertible {
     var description: String {
@@ -61,8 +62,8 @@ class Importer: NSObject, XMLParserDelegate {
 
         self.healthStore = HKHealthStore.init()
         self.healthStore?.requestAuthorization(toShare: Constants.allSampleTypes, read: Constants.allSampleTypes, completion: { _, error in
-            if let error = error, Constants.loggingEnabled {
-                os_log("Error: %@", error.localizedDescription)
+            if error != nil, Constants.loggingEnabled {
+                os_log("Error: %@", error!.localizedDescription)
             } else {
                 completion()
             }
@@ -78,7 +79,7 @@ class Importer: NSObject, XMLParserDelegate {
         // Uncomment if you only want to import the last 1 month
         // If your export.xml is large, you likely need to enable this as
         // otherwise the saveSamples method will fail
-        //self.cutDate = Calendar.current.date(byAdding: .month, value: -1, to: Date())
+        // self.cutDate = Calendar.current.date(byAdding: .month, value: -1, to: Date())
     }
 
     func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String: String]) {
@@ -114,28 +115,33 @@ class Importer: NSObject, XMLParserDelegate {
     }
 
     fileprivate func parseMetaDataFromAttributes(_ attributeDict: [String: String]) {
-        var key: String?
+        guard let key = attributeDict["key"] else { return }
+        guard let attributeValue = attributeDict["value"] else { return }
+
+        if key == HKMetadataKeySyncIdentifier || key == HKMetadataKeySyncVersion { return }
+
         var value: Any?
-        for (attributeKey, attributeValue) in attributeDict {
-            if attributeKey == "key" {
-                key = attributeValue
-            }
-            if attributeKey == "value" {
-                if let intValue = Int(attributeValue) {
-                    value = intValue
-                } else {
-                    value = attributeValue
+
+        let valueParts = attributeValue.components(separatedBy: " ")
+        if valueParts.count == 2, let num = numberFormatter?.number(from: valueParts.first!) {
+            do {
+                let unit = try? ExceptionCatcher.catch {
+                    return HKUnit(from: valueParts.last!)
                 }
-                if attributeValue.hasSuffix("%") {
-                    let components = attributeValue.split(separator: " ")
-                    value = HKQuantity.init(unit: .percent(), doubleValue: (numberFormatter?.number(from: String(components.first!))!.doubleValue)!)
+                if unit != nil {
+                    value = HKQuantity(unit: unit!, doubleValue: num.doubleValue)
+                } else {
+                    os_log("unable to parse unit from \(attributeValue)")
                 }
             }
         }
 
-        currentRecord.metadata = [String: Any]()
-        if let key = key, let value = value, key != "HKMetadataKeySyncIdentifier" {
-            currentRecord.metadata?[key] = value
+        if currentRecord.metadata == nil {
+            currentRecord.metadata = [String: Any]()
+        }
+
+        if value != nil {
+            currentRecord.metadata?[key] = value!
         }
     }
 
@@ -177,6 +183,7 @@ class Importer: NSObject, XMLParserDelegate {
                 saveRecord(item: currentRecord, withSuccess: {}, failure: {
                     if Constants.loggingEnabled {
                         os_log("fail to process record")
+                        os_log("Record: %@", self.currentRecord.description)
                     }
                 })
             }
@@ -187,7 +194,9 @@ class Importer: NSObject, XMLParserDelegate {
     func saveRecord(item: HealthRecord, withSuccess successBlock: @escaping () -> Void, failure failureBlock: @escaping () -> Void) {
         // HealthKit raises an exception if time between end and start date is > 345600
         let duration = item.endDate.timeIntervalSince(item.startDate)
-        if duration > 345600 || (item.type == "HKQuantityTypeIdentifierHeadphoneAudioExposure" && duration < 0.001) {
+        if duration > 345600 ||
+            (item.type == "HKQuantityTypeIdentifierHeadphoneAudioExposure" && duration < 0.001) ||
+            (item.type == "HKCategoryTypeIdentifierAudioExposureEvent" && Int(item.value) == 0) {
             failureBlock()
             return
         }
@@ -212,24 +221,32 @@ class Importer: NSObject, XMLParserDelegate {
                 metadata: item.metadata
             )
         } else if item.type == HKObjectType.workoutType().identifier {
+            let totalEnergyBurned = item.totalEnergyBurnedUnit == "" ? nil : HKQuantity(unit: HKUnit.init(from: item.totalEnergyBurnedUnit), doubleValue: item.totalEnergyBurned)
+            let totalDistance = item.totalDistanceUnit == "" ? nil : HKQuantity(unit: HKUnit.init(from: item.totalDistanceUnit), doubleValue: item.totalDistance)
+
             hkSample = HKWorkout.init(
                 activityType: item.activityType ?? HKWorkoutActivityType(rawValue: 0)!,
                 start: item.startDate,
                 end: item.endDate,
                 duration: HKQuantity(unit: HKUnit.init(from: item.unit!), doubleValue: item.value).doubleValue(for: HKUnit.second()),
-                totalEnergyBurned: HKQuantity(unit: HKUnit.init(from: item.totalEnergyBurnedUnit), doubleValue: item.totalEnergyBurned),
-                totalDistance: HKQuantity(unit: HKUnit.init(from: item.totalDistanceUnit), doubleValue: item.totalDistance),
+                totalEnergyBurned: totalEnergyBurned,
+                totalDistance: totalDistance,
                 device: nil,
                 metadata: item.metadata
             )
         } else if Constants.loggingEnabled {
             os_log("Didn't catch this item: %@", item.description)
         }
-        if let hkSample = hkSample,
-            (authorizedTypes[hkSample.sampleType] ?? false || (self.healthStore?.authorizationStatus(for: hkSample.sampleType) == HKAuthorizationStatus.sharingAuthorized)) {
-            authorizedTypes[hkSample.sampleType] = true
-            allSamples.append(hkSample)
-            successBlock()
+
+        if hkSample != nil {
+            if authorizedTypes[hkSample!.sampleType] ?? false ||
+                (self.healthStore?.authorizationStatus(for: hkSample!.sampleType) == HKAuthorizationStatus.sharingAuthorized) {
+                authorizedTypes[hkSample!.sampleType] = true
+                allSamples.append(hkSample!)
+                successBlock()
+            } else {
+                os_log("not authorized for type \(hkSample!.sampleType)")
+            }
         } else {
             failureBlock()
         }

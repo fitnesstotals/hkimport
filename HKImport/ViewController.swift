@@ -9,6 +9,9 @@
 import UIKit
 import os.log
 
+// TODO: add timer
+// TODO: add progress bar
+
 class ViewController: UIViewController {
     @IBOutlet weak var startButton: UIButton!
     @IBOutlet weak var readCounter: UILabel!
@@ -26,6 +29,7 @@ class ViewController: UIViewController {
                 path = url
             }
         } catch {
+            // TODO
         }
 
         dataImporter = Importer {
@@ -34,12 +38,15 @@ class ViewController: UIViewController {
             }
 
             if let path = path {
-                if let parser = XMLParser(contentsOf: path) {
-                    parser.delegate = self.dataImporter
-                    self.dataImporter.readCounterLabel  = self.readCounter
-                    self.dataImporter.writeCounterLabel = self.writeCounter
-                    parser.parse()
-                    self.dataImporter.saveAllSamples()
+                DispatchQueue.global(qos: .background).async {
+                    // TODO: get file length and show progress
+                    if let parser = XMLParser(contentsOf: path) {
+                        parser.delegate = self.dataImporter
+                        self.dataImporter.readCounterLabel  = self.readCounter
+                        self.dataImporter.writeCounterLabel = self.writeCounter
+                        parser.parse()
+                        self.dataImporter.saveAllSamples()
+                    }
                 }
             } else {
                 os_log("File not found")

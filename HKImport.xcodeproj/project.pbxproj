@@ -3,10 +3,11 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 48;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1D47B0582CDDB8FF00602F4E /* ExceptionCatcher in Frameworks */ = {isa = PBXBuildFile; productRef = 1D47B0572CDDB8FF00602F4E /* ExceptionCatcher */; };
 		4C7D60331FC178FC00BD7FC1 /* export.xml in Resources */ = {isa = PBXBuildFile; fileRef = 4C7D60321FC178FC00BD7FC1 /* export.xml */; };
 		4C8B9FD31FB1D757007C2D4F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8B9FD21FB1D757007C2D4F /* AppDelegate.swift */; };
 		4C8B9FD51FB1D757007C2D4F /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8B9FD41FB1D757007C2D4F /* ViewController.swift */; };
@@ -41,6 +42,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4C8BA00A1FB1EA45007C2D4F /* HealthKit.framework in Frameworks */,
+				1D47B0582CDDB8FF00602F4E /* ExceptionCatcher in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -150,6 +152,9 @@
 				Base,
 			);
 			mainGroup = 4C8B9FC61FB1D757007C2D4F;
+			packageReferences = (
+				1D47B0562CDDB8FF00602F4E /* XCRemoteSwiftPackageReference "ExceptionCatcher" */,
+			);
 			productRefGroup = 4C8B9FD01FB1D757007C2D4F /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -336,7 +341,8 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
-				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -347,9 +353,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = HKImport/HKImport.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = Q25LVLEHFB;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = HKImport/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = io.entire.hkimport;
 				PRODUCT_NAME = HKImport;
 				SWIFT_VERSION = 5.0;
@@ -363,9 +373,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = HKImport/HKImport.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = Q25LVLEHFB;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = HKImport/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = io.entire.hkimport;
 				PRODUCT_NAME = HKImport;
 				SWIFT_VERSION = 5.0;
@@ -395,6 +409,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		1D47B0562CDDB8FF00602F4E /* XCRemoteSwiftPackageReference "ExceptionCatcher" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/ExceptionCatcher";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1D47B0572CDDB8FF00602F4E /* ExceptionCatcher */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1D47B0562CDDB8FF00602F4E /* XCRemoteSwiftPackageReference "ExceptionCatcher" */;
+			productName = ExceptionCatcher;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 4C8B9FC71FB1D757007C2D4F /* Project object */;
 }
